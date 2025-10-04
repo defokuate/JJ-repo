@@ -1,0 +1,22 @@
+---
+- name: Create multiple users
+  hosts: linux
+  become: yes
+  tasks:
+    - name: Create users
+      create:
+        name: "{{ item }}"
+        state: present
+      loop:
+        -andrea
+        -patricia
+        -melissa
+
+---
+- name: Test servers connectivity
+  hosts: linux
+  become: yes
+  tasks:
+    - name: Ping servers
+      ping:
+            
