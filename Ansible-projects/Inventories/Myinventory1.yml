@@ -1,12 +1,15 @@
+---
 all:
   children:
     alma:
       hosts:
-        almalinux9.class8.com
+        almalinux9.class8.com:
     rhel:
       hosts:
-        rhel9.class8.com
+        rhel9.class8.com:
     linux:
       children:
         alma:
-        rhel:          
+        rhel:
+
+        
