@@ -1,0 +1,58 @@
+---
+- name: Playbook to manage class8 learning
+  hosts: linux
+  become: yes
+  tasks:
+    - name: Ensure groups exist
+      group:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - class8
+        - africa
+        - finance
+        - sales
+
+    - name: Create three users with groups, shell, and home
+      user:
+        name: "{{ item.name }}"
+        groups: "{{ item.groups }}"
+        shell: "{{ item.shell }}"
+        home: "{{ item.home }}"
+        append: yes
+        create_home: yes
+        state: present
+      loop:
+        - name: papa
+          groups: "class8,africa"
+          shell: /bin/bash
+          home: /opt/papa
+        - name: emma
+          groups: "class8,africa"
+          shell: /bin/bash
+          home: /opt/emma
+        - name: issa
+          groups: "finance,sales"
+          shell: /bin/bash
+          home: /tmp/issa
+
+    - name: Create directories with specific permissions, owners, and groups
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - path: /opt/unix
+          owner: papa
+          group: sales
+          mode: '0674'
+        - path: /usr/ansible
+          owner: emma
+          group: sales
+          mode: '1775'
+        - path: /tmp/linux
+          owner: issa
+          group: finance
+          mode: '0777'
