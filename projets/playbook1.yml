@@ -1,0 +1,17 @@
+---
+- name: Playbook test
+  hosts: inv12
+  become: yes
+
+  tasks:
+    - name: Create users
+      user:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - andrea
+        - patricia
+        - melissa
+    - name: Ping servers
+      ping: 
+

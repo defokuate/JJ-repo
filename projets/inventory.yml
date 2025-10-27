@@ -1,0 +1,26 @@
+[inv]
+rocky9.class8.com ansible_host=rocky9.class8.com ansible_user=student ansible_connection=local
+almalinux9.class8.com
+rhel9.class8.com
+
+[invc]
+rocky9.class8.com
+
+[invc1]
+rocky9.class8.com
+almalinux9.class8.com
+
+[invc2]
+rocky9.class8.com
+rhel9.class8.com
+
+[inv1]
+almalinux9.class8.com
+
+[inv12]
+almalinux9.class8.com
+rhel9.class8.com
+
+[inv2]
+rhel9.class8.com
+
