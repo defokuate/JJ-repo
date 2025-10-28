@@ -1,8 +1,9 @@
 ---
-- name: ping servers
+- name: Ping servers
   hosts: inv
   become: yes
 
-  Tasks:
-    - name: ping servers
+  tasks:
+    - name: Ping servers
       ping:
+
