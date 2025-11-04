@@ -1,0 +1,172 @@
+---
+- name: Install Prometheus and Grafana on control server
+  hosts: invc
+  become: yes
+  vars:
+    prometheus_version: "2.53.1"
+    grafana_repo_url: "https://packages.grafana.com/oss/rpm"
+  tasks:
+
+    # -------------------------------
+    # Prometheus
+    # -------------------------------
+    - name: Create prometheus user
+      ansible.builtin.user:
+        name: prometheus
+        shell: /sbin/nologin
+
+    - name: Create Prometheus directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+      loop:
+        - /etc/prometheus
+        - /var/lib/prometheus
+
+    - name: Download Prometheus
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        dest: /tmp/prometheus.tar.gz
+        mode: '0644'
+
+    - name: Extract Prometheus
+      ansible.builtin.unarchive:
+        src: /tmp/prometheus.tar.gz
+        dest: /opt/
+        remote_src: yes
+        creates: "/opt/prometheus-{{ prometheus_version }}.linux-amd64"
+
+    - name: Move Prometheus binaries
+      ansible.builtin.command: >
+        mv /opt/prometheus-{{ prometheus_version }}.linux-amd64/{prometheus,promtool} /usr/local/bin/
+      args:
+        creates: /usr/local/bin/prometheus
+
+    - name: Copy Prometheus config
+      ansible.builtin.copy:
+        content: |
+          global:
+            scrape_interval: 15s
+          scrape_configs:
+            - job_name: 'node_exporter'
+              static_configs:
+                - targets: ['rocky9.class8.com:9100','almalinux9.class8.com:9100','rhel9.class8.com:9100']
+        dest: /etc/prometheus/prometheus.yml
+        owner: prometheus
+        group: prometheus
+        mode: '0644'
+
+    - name: Create Prometheus systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/prometheus.service
+        content: |
+          [Unit]
+          Description=Prometheus
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=prometheus
+          ExecStart=/usr/local/bin/prometheus \
+            --config.file /etc/prometheus/prometheus.yml \
+            --storage.tsdb.path /var/lib/prometheus/
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd and start Prometheus
+      ansible.builtin.systemd:
+        name: prometheus
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
+    # -------------------------------
+    # Grafana
+    # -------------------------------
+    - name: Install required packages
+      ansible.builtin.yum:
+        name: yum-utils
+        state: present
+
+    - name: Add Grafana repo
+      ansible.builtin.yum_repository:
+        name: grafana
+        description: Grafana OSS
+        baseurl: "{{ grafana_repo_url }}/rpm"
+        gpgcheck: 1
+        gpgkey: https://packages.grafana.com/gpg.key
+        enabled: yes
+
+    - name: Install Grafana
+      ansible.builtin.yum:
+        name: grafana
+        state: present
+
+    - name: Enable and start Grafana
+      ansible.builtin.systemd:
+        name: grafana-server
+        enabled: yes
+        state: started
+
+---
+
+- name: Install Node Exporter on all servers
+  hosts: inv
+  become: yes
+  vars:
+    node_exporter_version: "1.7.2"
+  tasks:
+
+    - name: Create node_exporter user
+      ansible.builtin.user:
+        name: node_exporter
+        shell: /sbin/nologin
+
+    - name: Download Node Exporter
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+        dest: /tmp/node_exporter.tar.gz
+        mode: '0644'
+
+    - name: Extract Node Exporter
+      ansible.builtin.unarchive:
+        src: /tmp/node_exporter.tar.gz
+        dest: /opt/
+        remote_src: yes
+        creates: "/opt/node_exporter-{{ node_exporter_version }}.linux-amd64"
+
+    - name: Move Node Exporter binary
+      ansible.builtin.command: >
+        mv /opt/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter /usr/local/bin/
+      args:
+        creates: /usr/local/bin/node_exporter
+
+    - name: Create Node Exporter systemd service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/node_exporter.service
+        content: |
+          [Unit]
+          Description=Node Exporter
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          User=node_exporter
+          ExecStart=/usr/local/bin/node_exporter
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+
+    - name: Reload systemd and start Node Exporter
+      ansible.builtin.systemd:
+        name: node_exporter
+        enabled: yes
+        state: started
+        daemon_reload: yes
+
